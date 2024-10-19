@@ -9,6 +9,42 @@ const int UP_BIG = 1;
 const int DOWN_SMALL = 2;
 const int DOWN_BIG = 3;
 
+void getNaiveCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
+                            vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)
+{
+
+  c.clear();
+  int last_best = -1;
+  const int n = trans_points.size();
+  const int m = old_points.size();
+  int min_index = 0;
+  int second_min_index = 0;
+
+  //Do for each point
+  for (int ind_trans = 0; ind_trans < n; ++ind_trans)
+  {
+    float min_dist = 100000.00;
+    for (int ind_old = 0; ind_old < m; ++ind_old)
+    {
+      float dist = old_points[ind_trans].distToPoint2(&trans_points[ind_old]);
+      if (dist < min_dist)
+      {
+        min_dist = dist;
+        min_index = ind_old;
+        if (ind_old == 0)
+        {
+          second_min_index = ind_old + 1;
+        }
+        else
+        {
+          second_min_index = ind_old - 1;
+        }
+      }
+    }
+    c.push_back(Correspondence(&trans_points[ind_trans], &points[ind_trans], &old_points[min_index], &old_points[second_min_index]));
+  }
+}
+
 void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
                        vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)
 {
