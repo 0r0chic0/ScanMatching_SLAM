@@ -13,7 +13,6 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
-/// CHECK: include needed ROS msg type headers and libraries
 
 #include "scan_matching_skeleton/correspond.h"
 #include "scan_matching_skeleton/transform.h"

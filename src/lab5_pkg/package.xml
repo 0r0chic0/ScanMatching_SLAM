@@ -5,6 +5,7 @@
   <version>0.0.0</version>
   <description>Lab: Scan Matching</description>
   <maintainer email="sathish@ece.ubc.ca">sathish gopalakrishnan</maintainer>
+  <license>x</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>

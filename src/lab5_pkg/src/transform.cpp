@@ -2,6 +2,7 @@
 #include <cmath>
 #include <Eigen/Geometry>
 #include <complex>
+#include <iostream>
 
 using namespace std;
 
@@ -280,9 +281,6 @@ void updateTransform(vector<Correspondence> &corresponds, Transform &curr_trans)
   // input : corresponds : a struct vector of Correspondene struct object defined in correspond.
   // input : curr_trans : A Transform object refernece
   // output : update the curr_trans object. Being a call by reference function, Any changes you make to curr_trans will be reflected in the calling function in the scan_match.cpp program/
-
-
-  /// TODO: Implement the algorithm to find the transform.
   
   // You can change the number of iterations here. More the number of iterations, slower will be the convergence but more accurate will be the results. You need to find the right balance.
   int number_iter = 1;
@@ -298,28 +296,65 @@ void updateTransform(vector<Correspondence> &corresponds, Transform &curr_trans)
     // Fill in the values for the matrices
     Eigen::Matrix4f M, W;
     Eigen::MatrixXf g(1, 4);
-    M << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-    W << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
+    M << 0, 0, 0, 0, 
+         0, 0, 0, 0, 
+         0, 0, 0, 0, 
+         0, 0, 0, 0;
+    W << 0, 0, 0, 0, 
+         0, 0, 0, 0, 
+         0, 0, 1, 0, 
+         0, 0, 0, 1;
     g << 0, 0, 0, 0;
 
     // Calculate M and g
     for (Correspondence c : corresponds)
     {
+      M_i << 1, 0, c.pix, -c.piy,
+             0, 1, c.piy,  c.pix;
+      C_i = Eigen::Matrix2f::Identity();
+      pi_i = c.getPiVec();
+      
+      // Sum Mi^T*Mis
+      M += M_i.transpose() * C_i * M_i;
+
+      // Sum -2*pi^T*Mis
+      g -= 2 * pi_i.transpose() * C_i * M_i;
     }
 
     // Define sub-matrices A, B, D from M
     Eigen::Matrix2f A, B, D;
+    A = 2 * M.topRows(2).leftCols(2);
+    B = 2 * M.topRows(2).rightCols(2);
+    D = 2 * M.bottomRows(2).rightCols(2);
 
     //define S and S_A matrices from the matrices A B and D
-    Eigen::Matrix2f S;
-    Eigen::Matrix2f S_A;
+    Eigen::Matrix2f S = D - B.transpose() * A.inverse() * B;
     float S_tr = S(0, 0) + S(1, 1);
     float S_det = S(0, 0) * S(1, 1) - S(1, 0) * S(0, 1);
+    Eigen::Matrix2f S_A = S_det * S.inverse();
 
     //find the coefficients of the quadratic function of lambda
-    float pow_2;
-    float pow_1;
-    float pow_0;
+    Eigen::Matrix4f pow_2_matrix;
+    Eigen::Matrix4f pow_0_matrix;
+    Eigen::Matrix4f pow_1_matrix;
+
+    pow_2_matrix.topRows(2).leftCols(2) = A.inverse() * B * B.transpose() * A.inverse().transpose();
+    pow_2_matrix.topRows(2).rightCols(2) = -A.inverse() * B;
+    pow_2_matrix.bottomRows(2).leftCols(2) = -A.inverse() * B;
+    pow_2_matrix.bottomRows(2).rightCols(2) = Eigen::Matrix2f::Identity();
+    float pow_2 = (-4 * g * pow_2_matrix * g.transpose())(0, 0);
+
+    pow_1_matrix.topRows(2).leftCols(2) = A.inverse() * B * S_A * B.transpose() * A.inverse().transpose();
+    pow_1_matrix.topRows(2).rightCols(2) = -A.inverse() * B * S_A;
+    pow_1_matrix.bottomRows(2).leftCols(2) = -A.inverse() * B * S_A;;
+    pow_1_matrix.bottomRows(2).rightCols(2) = S_A;
+    float pow_1 = (-4 * g * pow_1_matrix * g.transpose())(0, 0);
+
+    pow_0_matrix.topRows(2).leftCols(2) = A.inverse() * B * S_A.transpose() * S_A * B.transpose() * A.inverse().transpose();
+    pow_0_matrix.topRows(2).rightCols(2) = -A.inverse() * B * S_A.transpose() * S_A;
+    pow_0_matrix.bottomRows(2).leftCols(2) = -A.inverse() * B * S_A.transpose() * S_A;
+    pow_0_matrix.bottomRows(2).rightCols(2) = S_A.transpose() * S_A;
+    float pow_0 = (g * pow_0_matrix * g.transpose())(0, 0);
 
     // find the value of lambda by solving the equation formed. You can use the greatest real root function
     // float lambda = greatest_real_root(-16, -16 * S_tr, pow_2, pow_1, pow_0);
@@ -330,6 +365,7 @@ void updateTransform(vector<Correspondence> &corresponds, Transform &curr_trans)
 
     // Convert from x to new transform
     float theta = atan2(x(3), x(2));
+    cout << x << endl;
     curr_trans = Transform(x(0), x(1), theta);
   }
 }

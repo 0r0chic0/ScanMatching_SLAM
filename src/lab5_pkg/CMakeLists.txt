@@ -56,6 +56,8 @@ ament_python_install_package(${PROJECT_NAME})
 #   DESTINATION lib/${PROJECT_NAME}
 # )
 
+add_compile_options(-g)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
