@@ -126,7 +126,7 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
                 if (up > start_index)
                 {
                     double delta_phi = old_points[up].theta - p_trans.theta;
-                    double min_dist_up = std::sin(delta_phi) * p_trans.r;
+                    double min_dist_up = std::sin(delta_phi) * std::abs(p_trans.r);
 
                     if (min_dist_up * min_dist_up > best_dist * 1.5)
                     {
@@ -134,15 +134,8 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
                         continue;
                     }
 
-                    // Use jump table optimization if possible
-                    if (jump_table[up][UP_BIG] < old_size)
-                    {
-                        up = jump_table[up][UP_BIG];
-                    }
-                    else
-                    {
-                        up_stopped = true;
-                    }
+                    up = (old_points[up].r < std::abs(p_trans.r)) ? jump_table[up][UP_BIG] : jump_table[up][UP_SMALL];  
+
                 }
                 else
                 {
@@ -179,23 +172,14 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
                 if (down < start_index)
                 {
                     double delta_phi = old_points[down].theta - p_trans.theta;
-                    double min_dist_down = std::sin(delta_phi) * p_trans.r;
+                    double min_dist_down = std::sin(delta_phi) * std::abs(p_trans.r);
 
                     if (min_dist_down * min_dist_down > best_dist * 1.5)
                     {
                         down_stopped = true;
                         continue;
                     }
-
-                    // Use jump table optimization if possible
-                    if (jump_table[down][DOWN_BIG] >= 0)
-                    {
-                        down = jump_table[down][DOWN_BIG];
-                    }
-                    else
-                    {
-                        down_stopped = true;
-                    }
+                    down = (old_points[down].r < std::abs(p_trans.r)) ? jump_table[down][DOWN_BIG] : jump_table[down][DOWN_SMALL];  
                 }
                 else
                 {
