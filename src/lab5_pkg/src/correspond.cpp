@@ -1,5 +1,8 @@
 #include "scan_matching_skeleton/correspond.h"
+#include "rclcpp/rclcpp.hpp"
 #include "cmath"
+
+
 
 using namespace std;
 #define MAX_DIST 1000000.0
@@ -9,7 +12,7 @@ const int UP_BIG = 1;
 const int DOWN_SMALL = 2;
 const int DOWN_BIG = 3;
 
-void getNaiveCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
+/*void getNaiveCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
                             vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)
 {
 
@@ -43,19 +46,20 @@ void getNaiveCorrespondence(vector<Point> &old_points, vector<Point> &trans_poin
     }
     c.push_back(Correspondence(&trans_points[ind_trans], &points[ind_trans], &old_points[min_index], &old_points[second_min_index]));
   }
-}
+}*/
 
 void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
                        vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)
 {
+    (void)prob;  // Suppress unused parameter warning.
+
     // Clear previous correspondences
     c.clear();
     int last_best = -1;
     const int trans_size = trans_points.size();
     const int old_size = old_points.size();
-
     // Loop through each transformed point to find its correspondence in the old points
-    for (int ind_trans = 0; ind_trans < min(old_size, trans_size); ++ind_trans)
+    for (int ind_trans = 0; ind_trans < std::min(old_size, trans_size); ++ind_trans)
     {
         // Variables to store the best match and its distance
         int best = -1;
@@ -67,8 +71,11 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
         Point &p_trans = trans_points[ind_trans];
 
         // Calculate the approximate starting index in the old points based on angle
-        double angle_diff = p_trans.theta - old_points[0].theta;
-        int start_index = static_cast<int>((angle_diff) * (old_size / (2.0 * M_PI)));
+        double angle_diff = std::fmod(p_trans.theta - old_points[0].theta, 2.0 * M_PI);
+        if (angle_diff < 0) angle_diff += 2.0 * M_PI;
+        int start_index = static_cast<int>((angle_diff / (2.0 * M_PI)) * old_size);
+
+        // Ensure start_index is within valid range using std::min and std::max.
         start_index = std::max(0, std::min(start_index, old_size - 1));
 
         // If last_best is valid, use it as the starting point
@@ -82,11 +89,12 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
         bool up_stopped = false;
         bool down_stopped = false;
 
+
         // Search until both directions have been stopped
         while (!up_stopped || !down_stopped)
         {
             // Determine whether to search up or down based on the last distances
-            bool now_up = !up_stopped && (last_dist_up < last_dist_down);
+            bool now_up = !up_stopped && (last_dist_up <= last_dist_down);
 
             if (now_up)
             {
@@ -120,15 +128,21 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
                     double delta_phi = old_points[up].theta - p_trans.theta;
                     double min_dist_up = std::sin(delta_phi) * p_trans.r;
 
-                    if (min_dist_up * min_dist_up > best_dist)
+                    if (min_dist_up * min_dist_up > best_dist * 1.5)
                     {
-                        // Stop searching upwards if we can't find a better match
                         up_stopped = true;
                         continue;
                     }
 
                     // Use jump table optimization if possible
-                    up = (old_points[up].r < p_trans.r) ? jump_table[up][UP_BIG] : jump_table[up][UP_SMALL];
+                    if (jump_table[up][UP_BIG] < old_size)
+                    {
+                        up = jump_table[up][UP_BIG];
+                    }
+                    else
+                    {
+                        up_stopped = true;
+                    }
                 }
                 else
                 {
@@ -147,7 +161,6 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
 
                 // Calculate the distance between the current transformed point and the point in the "down" direction
                 last_dist_down = p_trans.distToPoint2(&old_points[down]);
-
                 // If this point is better than the best found so far, update best
                 if (last_dist_down < best_dist)
                 {
@@ -168,15 +181,21 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
                     double delta_phi = old_points[down].theta - p_trans.theta;
                     double min_dist_down = std::sin(delta_phi) * p_trans.r;
 
-                    if (min_dist_down * min_dist_down > best_dist)
+                    if (min_dist_down * min_dist_down > best_dist * 1.5)
                     {
-                        // Stop searching downwards if we can't find a better match
                         down_stopped = true;
                         continue;
                     }
 
                     // Use jump table optimization if possible
-                    down = (old_points[down].r < p_trans.r) ? jump_table[down][DOWN_BIG] : jump_table[down][DOWN_SMALL];
+                    if (jump_table[down][DOWN_BIG] >= 0)
+                    {
+                        down = jump_table[down][DOWN_BIG];
+                    }
+                    else
+                    {
+                        down_stopped = true;
+                    }
                 }
                 else
                 {
@@ -190,6 +209,7 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
         if (best != -1 && second_best != -1)
         {
             c.push_back(Correspondence(&trans_points[ind_trans], &points[ind_trans], &old_points[best], &old_points[second_best]));
+          
         }
         else
         {
@@ -198,9 +218,13 @@ void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, v
         }
 
         // Update last_best to use as a hint in the next iteration
-        last_best = best;
+        if (best != -1)
+        {
+            last_best = best;
+        }
     }
 }
+
 
 void computeJump(vector<vector<int>> &table, vector<Point> &points)
 {
