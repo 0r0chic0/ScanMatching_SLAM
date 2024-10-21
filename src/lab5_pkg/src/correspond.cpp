@@ -12,7 +12,7 @@ const int UP_BIG = 1;
 const int DOWN_SMALL = 2;
 const int DOWN_BIG = 3;
 
-/*void getNaiveCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
+void getNaiveCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
                             vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)
 {
 
@@ -46,7 +46,7 @@ const int DOWN_BIG = 3;
     }
     c.push_back(Correspondence(&trans_points[ind_trans], &points[ind_trans], &old_points[min_index], &old_points[second_min_index]));
   }
-}*/
+}
 
 void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
                        vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)

@@ -358,14 +358,18 @@ void updateTransform(vector<Correspondence> &corresponds, Transform &curr_trans)
 
     // find the value of lambda by solving the equation formed. You can use the greatest real root function
     // float lambda = greatest_real_root(-16, -16 * S_tr, pow_2, pow_1, pow_0);
-    float lambda = solve_deg4(-16, -16 * S_tr, pow_2, pow_1, pow_0);
+    float lambda = greatest_real_root(-16, -16 * S_tr, pow_2, pow_1, pow_0);
 
     //find the value of x which is the vector for translation and rotation
     Eigen::Vector4f x = -(2 * M + 2 * lambda * W).transpose().inverse() * g.transpose();
 
+    // Ignore nans
+    if ((x.array().isNaN()).any()) {
+      return;
+    }
+
     // Convert from x to new transform
     float theta = atan2(x(3), x(2));
-    cout << x << endl;
     curr_trans = Transform(x(0), x(1), theta);
   }
 }

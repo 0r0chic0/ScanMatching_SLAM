@@ -12,7 +12,7 @@ b. Short writeup describing your approach and comment on the performance of this
 
 A short youtube video of the simulation demonstrating the odometry estimation.
 
-(FILL ME IN)
+[FILL ME IN](https://youtu.be/HRXpV4_nTGE)
 
 ## Code
 
